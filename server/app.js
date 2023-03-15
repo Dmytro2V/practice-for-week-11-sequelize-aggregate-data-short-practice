@@ -93,8 +93,8 @@ app.get('/cats/:id/toys', async (req, res, next) => {
     //    through: {attributes:[]},
         
         
-        raw: true
-});
+        raw: true //? probably can set to false instead of through: {attributes:[]} - mm
+    });
 
     const cat = await Cat.findByPk(req.params.id, {
         include: { model: Toy }
@@ -113,17 +113,69 @@ app.get('/cats/:id/toys', async (req, res, next) => {
 
     // After the steps above are complete, refactor the line below to only
     // display `catData`
-    res.json( catData);
-})
+    res.json({catData});
+});
 
 
 
 // BONUS STEP: Create an endpoint for GET /data-summary that includes a summary
 // of all the aggregate data according to spec
 // Your code here
+app.get('/data-summary', async (req, res, next) => {
+    const totalNumberOfCats = await Cat.count();
+    const totalNumberOfToys = await Toy.count()
+
+    const toySummary = await Toy.findAll( {
+    
+        attributes:  [
+         
+            [
+                sequelize.fn("AVG", sequelize.col("price")), 
+                "averagePriceOfAToy"
+            ],
+            [
+                sequelize.fn("SUM", sequelize.col("price")), 
+                "atotalPriceOfAllToys"
+            ],
+            [
+                sequelize.fn("MAX", sequelize.col("price")), 
+                "maximumToyPrice"
+            ],
+            [
+                sequelize.fn("MIN", sequelize.col("price")), 
+                "minimumToyPrice"
+            ]
+
+        ],
+        through: {attributes:[]}   
+    });
+    const expensiveToySummary = await Toy.findAll( {
+    
+        attributes:  [
+         
+            [
+                sequelize.fn("AVG", sequelize.col("price")), 
+                "averagePriceOfAnExpensiveToy"
+            ]
+        ],
+        where: {
+           price:{ 
+                [Op.gt]: 55
+            }
+        },
+        through: {attributes:[]}   
+    });
 
 
-
+    //let toySummary = toysData;
+    res.json({totalNumberOfCats, totalNumberOfToys, toySummary, expensiveToySummary })
+});
+/*
+            [
+                sequelize.fn("COUNT", sequelize.col("id")), 
+                "totalNumberOfToys"
+            ] ,
+*/
 // Root route - DO NOT MODIFY
 app.get('/', (req, res) => {
     res.json({
